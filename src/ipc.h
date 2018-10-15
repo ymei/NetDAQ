@@ -23,7 +23,9 @@ typedef struct shm_sync
     size_t          nSeg;       //!< number of segments.
     atomic_intptr_t iRd;        //!< index of segment being read.
     atomic_intptr_t iWr;        //!< index of segment being written to.
-    atomic_flag     ovRun;      //!< write overruns read flag.
+    atomic_flag     ovRun;      //!< flag indicating write overruns read.
+    atomic_size_t   wrBytes;    //!< written bytes.
+    atomic_size_t   wrSegs;     //!< written segments.
 } shm_sync_t;
 /** Initial values for shm_sync_t.  Called by producer only. */
 #define shm_sync_producer_init(v)               \
@@ -34,6 +36,8 @@ typedef struct shm_sync
         atomic_init(&v->iRd, 0);                \
         atomic_init(&v->iWr, 0);                \
         atomic_flag_test_and_set(&v->ovRun);    \
+        atomic_init(&v->wrBytes, 0);            \
+        atomic_init(&v->wrSegs,  0);            \
     } while(0);
 /** Initialize for consumer.  Data overrun check starts by this. */
 #define shm_sync_consumer_init(v)               \
@@ -48,13 +52,13 @@ typedef struct shm_sync
 size_t get_system_pagesize(void);
 /** Create shared memory.
  * @param[out] p memory address (mmap).
- * @param[in]  size shm size, automatically enlarged by adding IPC_SYNC_PAGES page
- *             to store synchronization variables.
+ * @param[inout] size in: requested shm data size; out: enlarged by adding IPC_SYNC_PAGES
+ *                    page to store synchronization variables.
  * @param[out] ssv pointer to synchronization variables structure.
  * @param[in] removeQ shm_unlink the file if exist, then return failure immediately.
  * @return shmfd.  Should close() after use.  -1 on failure.
  */
-int shm_create(const char *name, void **p, size_t size, shm_sync_t **ssv, int removeQ);
+int shm_create(const char *name, void **p, size_t *size, shm_sync_t **ssv, int removeQ);
 /** Connect to shared memory.
  * @param[out] p memory address (mmap).
  * @param[out] size shm size in bytes, including the page containing synchronization variables.
@@ -70,4 +74,15 @@ int shm_connect(const char *name, void **p, size_t *size, shm_sync_t **ssv);
  * @return For read, NULL if iRd == iWr-1.
  */
 SHM_ELEM_TYPE *shm_acquire_next_segment_sync(const void *p, shm_sync_t *ssv, shm_seg_mode_t mode);
+/** Update write counts: bytes and segs
+ * @param[in] ssv pointer to shm_sync_t.
+ */
+void shm_update_write_count(shm_sync_t *ssv, size_t byteInc, size_t segInc);
+/** Get write counts: bytes and segs.
+ * @param[out] byte bytes written if not NULL.
+ * @param[out] seg segments written if not NULL.
+ * @return bytes written.
+ */
+size_t shm_get_write_count(shm_sync_t *ssv, size_t *byte, size_t *seg);
+
 #endif /* __IPC_H__ */

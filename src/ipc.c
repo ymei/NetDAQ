@@ -15,8 +15,8 @@ size_t get_system_pagesize(void)
 }
 /* Declaration to make C99/C11 happy. */
 int ftruncate(int fd, off_t length);
-/** Create shared memory */
-int shm_create(const char *name, void **p, size_t size, shm_sync_t **ssv, int removeQ)
+/** Create shared memory. */
+int shm_create(const char *name, void **p, size_t *size, shm_sync_t **ssv, int removeQ)
 {
     int shmfd; // shared memory file descriptor.
     size_t esz;
@@ -26,7 +26,7 @@ int shm_create(const char *name, void **p, size_t size, shm_sync_t **ssv, int re
 
     assert(sizeof(shm_sync_t) <= get_system_pagesize());
     // Enlarged size.  Last page is for sync variables.
-    esz = size + SHM_SYNC_NPAGE*get_system_pagesize();
+    esz = *size + SHM_SYNC_NPAGE*get_system_pagesize();
 
     if((shmfd = shm_open(name, O_CREAT | O_RDWR | O_EXCL, mode))<0) {
         fprintf(stderr, "Error in shm_open(\"%s\", ...): ", name);
@@ -50,11 +50,11 @@ int shm_create(const char *name, void **p, size_t size, shm_sync_t **ssv, int re
         return -1;
     }
     p1 = (uint8_t*)(*p);
-    printf("%p 0x%zx %p\n", *p, size, (void*)(p1+size));
     if(ssv) {
-        *ssv = (shm_sync_t*)(p1 + size);
+        *ssv = (shm_sync_t*)(p1 + *size);
         (*ssv)->ovRun = flag;
     }
+    *size = esz;
     return shmfd;
 }
 /** Connect to shared memory. */
@@ -95,11 +95,16 @@ SHM_ELEM_TYPE *shm_acquire_next_segment_sync(const void *p, shm_sync_t *ssv, shm
         /* iWr is allowed to be more than +1 ahead of iRd, so the two
          * separate atomic_load of iRd and iWr are allowed. */
         iRd = atomic_load(&ssv->iRd); // Owned by this consumer.
-        iRd++;
-        if(iRd == ssv->nSeg) { iRd = 0; } // Wrap around.
-        /* Next segment is being written to. */
+        /* Current segment is being written to. */
         iRdTmp = iRd;
         /* iRd is overwritten if not equal. */
+        if(atomic_compare_exchange_strong(&ssv->iWr, &iRdTmp, iRdTmp)) {
+            return NULL;
+        }
+        /* Next segment is being written to. */
+        iRd++;
+        if(iRd == ssv->nSeg) { iRd = 0; } // Wrap around.
+        iRdTmp = iRd;
         if(atomic_compare_exchange_strong(&ssv->iWr, &iRdTmp, iRdTmp)) {
             return NULL;
         }
@@ -114,7 +119,7 @@ SHM_ELEM_TYPE *shm_acquire_next_segment_sync(const void *p, shm_sync_t *ssv, shm
         iWrTmp = iWr;
         if(atomic_compare_exchange_strong(&ssv->iRd, &iWrTmp, iWrTmp)) {
             if(!atomic_flag_test_and_set(&ssv->ovRun)) { // Edge trigger.
-                fprintf(stderr, "Data ovRun.\n");
+                fprintf(stderr, "Data overrun.\n");
             }
         }
         /* Update rp and ssv->iWr. */
@@ -128,4 +133,20 @@ SHM_ELEM_TYPE *shm_acquire_next_segment_sync(const void *p, shm_sync_t *ssv, shm
     }
 
     return rp;
+}
+/** Update write counts: bytes and segs. */
+void shm_update_write_count(shm_sync_t *ssv, size_t byteInc, size_t segInc)
+{
+    atomic_fetch_add(&ssv->wrBytes, byteInc);
+    atomic_fetch_add(&ssv->wrSegs, segInc);
+}
+/** Get write counts: bytes and segs. */
+size_t shm_get_write_count(shm_sync_t *ssv, size_t *byte, size_t *seg)
+{
+    size_t b, s;
+    b = atomic_load(&ssv->wrBytes);
+    s = atomic_load(&ssv->wrSegs);
+    if(byte) { *byte = b; }
+    if(seg) { *seg = s; }
+    return b;
 }

@@ -67,7 +67,7 @@ int main(int argc, char **argv)
     for(int i=0;;i++) {
         p = shm_acquire_next_segment_sync(shmp, ssv, SHM_SEG_READ);
         if(p) {
-            printf("0x%x, %td, %td\n", *p, atomic_load(&ssv->iWr), atomic_load(&ssv->iRd));
+            printf("0x%x, %td, %td\n", *p, atomic_load(&ssv->iRd), atomic_load(&ssv->iWr));
         }
     }
 

@@ -8,10 +8,11 @@ A circular buffer, implemented with shared memory (shm) between processes, is us
 
 The shm is divided into segments.  The producer and the consumer each acquire and operate on one single segment at a time.  Spectators are advised to check ```shm_sync_t->iWr``` to avoid reading the segment that is being written to.
 
-```shm_sync_t``` is stored at the last page of the shm.
+The ```shm_sync``` structure is stored at the last page of the shm.
 
 ## IPC
-  - ```ipcrm``` to clean up upon process faults.
+  - Segment size and number of segments of shm affect data rate substantially.
+  - ```ipcrm``` to clean up upon process faults.  Not necessarily useful.
 ### Linux
   - ```ipcs -lm``` to show shm limits.
   - ```lsipc``` ```# util-linux>=2.27``` to show information on IPC facilities currently employed in the system.
