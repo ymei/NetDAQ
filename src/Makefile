@@ -65,19 +65,13 @@ exe_targets: $(EXE_TARGETS)
 shlib_targets: $(SHLIB_TARGETS)
 debug_exe_targets: $(DEBUG_EXE_TARGETS)
 
-%.o: %.c common.h
-	$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
 ndrecv: ndrecv.o utils.o ipc.o
 	$(CC) $(CFLAGS) $(INCLUDE) $^ $(LIBS) $(LDFLAGS) -o $@
 ndsave: ndsave.o utils.o ipc.o
 	$(CC) $(CFLAGS) $(INCLUDE) $^ $(LIBS) $(LDFLAGS) -o $@
 waveview: waveview.c hdf5rawWaveformIo.o
 	$(CC) $(CFLAGS) $(INCLUDE) -Wno-deprecated-declarations $^ $(LIBS) $(GLLIBS) -lpthread -lhdf5 $(LDFLAGS) -o $@
-command.o: command.c command.h common.h
-	$(CC) $(CFLAGS) $(INCLUDE) -c $<
-tge.o: tge.c tge.h command.h common.h
-	$(CC) $(CFLAGS) $(INCLUDE) -c $<
-sip.o: sip.c sip.h command.h common.h
+ipc.o: ipc.c ipc.h common.h
 	$(CC) $(CFLAGS) $(INCLUDE) -c $<
 hdf5rawWaveformIo.o: hdf5rawWaveformIo.c hdf5rawWaveformIo.h common.h
 	$(CC) $(CFLAGS) -DH5_NO_DEPRECATED_SYMBOLS $(INCLUDE) -c $<
@@ -92,6 +86,9 @@ hdf5rawWaveformIo: hdf5rawWaveformIo.c hdf5rawWaveformIo.h
 # 	$(CC) $(CFLAGS) -DENABLEMAIN $(INCLUDE) $(LIBS) -o $@ $<
 # libmreadarray_m32$(SHLIB_EXT): mreadarray.c
 # 	$(CC) -m32 $(SHLIB_CFLAGS) $(CFLAGS) $(CFLAGS_32) -o $@ $<
+
+%.o: %.c common.h
+	$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
 
 clean:
 	rm -f *.o *.so *.dylib *.dll *.bundle

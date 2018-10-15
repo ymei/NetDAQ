@@ -1,3 +1,6 @@
+/** \file common.h
+ * Common include file.
+ */
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
@@ -5,25 +8,30 @@
 #define M_PI 3.14159265358979323846264338327
 #endif
 
-#define SHM_NAME_DEFAULT "/netdaq"
+/** Shared memory fundamental element type. */
+#define SHM_ELEM_TYPE uint32_t
+#define SHM_SEG_LEN   33554432
+#define SHM_NSEG      16
+#define SHM_NAME      "/netdaq"
+
 #define HDF5IO(name) hdf5rawWaveformIo_ ## name
 
 #define SCOPE_NCH 4
-#define SCOPE_MEM_LENGTH_MAX 12500000 /* DPO5054 default, 12.5M points maximum */
+#define SCOPE_MEM_LENGTH_MAX 12500000 /**< DPO5054 default, 12.5M points maximum */
 #define SCOPE_DATA_TYPE int8_t
 #define SCOPE_DATA_HDF5_TYPE H5T_NATIVE_INT8
 
 #define RAW_WAVEFORM_BASE_TYPE SCOPE_DATA_TYPE
 #define ANALYSIS_WAVEFORM_BASE_TYPE double
-#define FFT_BASE_TYPE double /* if this is float, FFTW should be fftwf_ */
+#define FFT_BASE_TYPE double /**< if this is float, FFTW should be fftwf_ */
 #define FFTW(name) fftw_ ## name
 #define WAVELET_BASE_TYPE double
 
 struct waveform_attribute
 {
     uint32_t chMask;
-    uint64_t nPt;     /* number of points in each event */
-    uint64_t nFrames; /* number of Fast Frames in each event, 0 means off */
+    uint64_t nPt;     /**< number of points in each event */
+    uint64_t nFrames; /**< number of Fast Frames in each event, 0 means off */
     double dt;
     double t0;
     double ymult[SCOPE_NCH];

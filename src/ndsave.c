@@ -18,7 +18,7 @@ typedef struct param
 } param_t;
 
 param_t paramDefault = {
-    .shmName = SHM_NAME_DEFAULT,
+    .shmName = SHM_NAME,
 };
 
 void print_usage(const param_t *pm, FILE *s)
@@ -31,6 +31,7 @@ int main(int argc, char **argv)
 {
     int shmfd;
     void *shmp;
+    shm_sync_t *ssv;
     size_t pageSize, shmSize;
     param_t pm;
     int optC = 0;
@@ -52,18 +53,23 @@ int main(int argc, char **argv)
     argv += optind;
 
     pageSize = get_system_pagesize();
-    shmfd = shm_connect(pm.shmName, &shmp, &shmSize);
+    shmfd = shm_connect(pm.shmName, &shmp, &shmSize, &ssv);
     if(shmfd<0 || shmp==NULL) return EXIT_FAILURE;
-    printf("shm size is %zd.\n", shmSize);
-    printf("shm pointer at %p.\n", shmp);
+    close(shmfd); // Can be closed immediately after mmap.
+    fprintf(stderr, "System pagesize: %zd bytes.\n", pageSize);
+    fprintf(stderr, "Shared memory element size: %zd bytes.\n", ssv->elemSize);
+    fprintf(stderr, "Shared memory SegLen: %zd, NSeg: %zd, total size: %zd bytes.\n",
+            ssv->segLen, ssv->nSeg, shmSize);
+    fprintf(stderr, "Shared memory sync variables in the last %d page.\n", SHM_SYNC_NPAGE);
 
-    volatile uint32_t *p = (volatile uint32_t*)shmp, p0=0;
+    shm_sync_consumer_init(ssv);
+    SHM_ELEM_TYPE *p;
     for(int i=0;;i++) {
-        if(*p != p0) {
-            printf("0x%x, i=%d\n", *p, i);
-            p0 = *p;
+        p = shm_acquire_next_segment_sync(shmp, ssv, SHM_SEG_READ);
+        if(p) {
+            printf("0x%x, %td, %td\n", *p, atomic_load(&ssv->iWr), atomic_load(&ssv->iRd));
         }
     }
-    close(shmfd);
+
     return EXIT_SUCCESS;
 }
