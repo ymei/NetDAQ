@@ -220,11 +220,11 @@ int HDF5IO(write_event)(struct HDF5IO(waveform_file) *wavFile,
         H5Pclose(chPid);                                    \
     } while(0)
 
-    if(inChunkId == 0) { /* need to create a new chunk */
+    if (inChunkId == 0) { /* need to create a new chunk */
         write_event_create_dataset;
     } else {
         chDid = H5Dopen(rootGid, buf, H5P_DEFAULT);
-        if(chDid < 0) { /* need to create a new chunk */
+        if (chDid < 0) { /* need to create a new chunk */
             /* This is not a neat way to do it.  One may check out
              * H5Lexists() and try to utilize that function.  Its
              * efficiency is not verified though. */
@@ -368,12 +368,12 @@ int main(int argc, char **argv)
     printf("number of events: %zd\n", HDF5IO(get_number_of_events)(wavFile));
     printf("%zd, %g, %g\n", wavAttr.nPt, wavAttr.dt, wavAttr.t0);
 
-    for(i=0; i < wavFile->nCh * wavFile->nPt; i++) {
+    for (i=0; i < wavFile->nCh * wavFile->nPt; i++) {
         evt.wavBuf[i] = 0;
     }
     evt.eventId = 1;
     HDF5IO(read_event)(wavFile, &evt);
-    for(i=0; i < wavFile->nCh * wavFile->nPt; i++) {
+    for (i=0; i < wavFile->nCh * wavFile->nPt; i++) {
         printf("%d ", evt.wavBuf[i]);
     }
     printf("\n");

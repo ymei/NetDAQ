@@ -52,7 +52,7 @@ ifeq ($(ARCH), ppc970)
   CFLAGS += -m64
 endif
 ############################ Define targets ###################################
-EXE_TARGETS = ndrecv ndsave
+EXE_TARGETS = ndrecv ndsave tcpserv
 DEBUG_EXE_TARGETS = hdf5rawWaveformIo
 # SHLIB_TARGETS = XXX$(SHLIB_EXT)
 
@@ -71,6 +71,8 @@ ndsave: ndsave.o utils.o ipc.o
 	$(CC) $(CFLAGS) $(INCLUDE) $^ $(LIBS) $(LDFLAGS) -o $@
 waveview: waveview.c hdf5rawWaveformIo.o
 	$(CC) $(CFLAGS) $(INCLUDE) -Wno-deprecated-declarations $^ $(LIBS) $(GLLIBS) -lpthread -lhdf5 $(LDFLAGS) -o $@
+tcpserv: tcpserv.o utils.o
+	$(CC) $(CFLAGS) $(INCLUDE) $^ $(LIBS) $(LDFLAGS) -o $@
 ipc.o: ipc.c ipc.h common.h
 	$(CC) $(CFLAGS) $(INCLUDE) -c $<
 hdf5rawWaveformIo.o: hdf5rawWaveformIo.c hdf5rawWaveformIo.h common.h

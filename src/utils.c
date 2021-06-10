@@ -42,12 +42,12 @@ double rand_gauss()
     double v1, v2, R, fac;
     static double gset;
     static int iset;
-    if(iset == 0) {
+    if (iset == 0) {
         do {
             v1 = 2.0 * rand0_1() - 1.0;
             v2 = 2.0 * rand0_1() - 1.0;
             R = v1*v1 + v2*v2;
-        } while(R >= 1.0 || R == 0.0);
+        } while (R >= 1.0 || R == 0.0);
         fac = sqrt(-2.0 * log(R)/R);
         gset = v1 * fac;
         iset = 1;
@@ -77,8 +77,8 @@ double *rand_gaussnd(size_t n, const double *L, const double *mean, double *pt)
 
     intptr_t i, j;
     double u, v, x, y, q;
-    for(i=0; i<n; i++) { /* fill vector spt of independent normal deviates. */
-        do{
+    for (i=0; i<n; i++) { /* fill vector spt of independent normal deviates. */
+        do {
             u = rand0_1();
             v = 1.7156*(rand0_1()-0.5);
             x = u - 0.449871;
@@ -87,9 +87,9 @@ double *rand_gaussnd(size_t n, const double *L, const double *mean, double *pt)
         } while (q > 0.27597 && (q > 0.27846 || v*v > -4.*log(u)*u*u));
         spt[i] = v/u;
     }
-    for(i=0; i<n; i++) {
+    for (i=0; i<n; i++) {
         pt[i] = 0.0;
-        for(j=0; j<=i; j++) pt[i] += L[i*n+j] * spt[j];
+        for (j=0; j<=i; j++) pt[i] += L[i*n+j] * spt[j];
         pt[i] += mean[i];
     }
     return pt;
@@ -105,8 +105,8 @@ static inline size_t qs_partition(QS_TYPE *list, size_t left, size_t right, size
     /* move pivot to the end */
     tmp = list[pivotIndex]; list[pivotIndex] = list[right]; list[right] = tmp;
     storeIndex = left;
-    for(i=left; i<=right-1; i++) {
-        if(list[i] < pivotValue) {
+    for (i=left; i<=right-1; i++) {
+        if (list[i] < pivotValue) {
             tmp = list[storeIndex]; list[storeIndex] = list[i]; list[i] = tmp;
             storeIndex++;
         }
@@ -119,10 +119,10 @@ static inline size_t qs_partition(QS_TYPE *list, size_t left, size_t right, size
 static inline QS_TYPE qs_select(QS_TYPE *list, size_t left, size_t right, size_t kth)
 {
     size_t pivotIndex;
-    if(left == right) return list[left];
+    if (left == right) return list[left];
     pivotIndex = left + rand_int64() % (right - left + 1LL);
     pivotIndex = qs_partition(list, left, right, pivotIndex);
-    if(kth == pivotIndex) {
+    if (kth == pivotIndex) {
         return list[kth];
     } else if (kth < pivotIndex) {
         return qs_select(list, left, pivotIndex - 1, kth);
@@ -146,20 +146,20 @@ int cholesky_decomp(const double *a, size_t n, double **L)
 {
     intptr_t i, j, k;
     double sum, *el;
-    if(*L == NULL) {
+    if (*L == NULL) {
         (*L) = (double*)calloc(n*n, sizeof(double));
-        if(*L == NULL) {
+        if (*L == NULL) {
             error_printf("%s(): *L allocation failure.\n", __func__);
             return 0;
         }
     }
     el = *L;
-    for(i=0; i<n*n; i++) {el[i] = a[i];}
-    for(i=0; i<n; i++) {
-        for(j=i; j<n; j++) {
-            for(sum=el[i*n+j],k=i-1; k>=0; k--) sum -= el[i*n+k] * el[j*n+k];
-            if(i == j) {
-                if(sum <= 0.0) {
+    for (i=0; i<n*n; i++) {el[i] = a[i];}
+    for (i=0; i<n; i++) {
+        for (j=i; j<n; j++) {
+            for (sum=el[i*n+j],k=i-1; k>=0; k--) sum -= el[i*n+k] * el[j*n+k];
+            if (i == j) {
+                if (sum <= 0.0) {
                     error_printf("%s(): a is not positive-definite.\n", __func__);
                     return 0;
                 }
@@ -169,8 +169,8 @@ int cholesky_decomp(const double *a, size_t n, double **L)
             }
         }
     }
-    for(i=0; i<n; i++)
-        for(j=0; j<i; j++)
+    for (i=0; i<n; i++)
+        for (j=0; j<i; j++)
             el[j*n+i] = 0.0;
     return 1;
 }
@@ -189,24 +189,24 @@ int main(int argc, char **argv)
     double pt[3];
 
     rand_init(rand_seed);
-    for(i=0; i<16; i++) {
+    for (i=0; i<16; i++) {
         list[i] = (QS_TYPE)(rand_int64() % 16LL);
         printf(" %g", list[i]);
     }
     printf("\n");
-    for(k = 0; k<16; k++) {
+    for (k = 0; k<16; k++) {
         printf("%zdth smallest element is %g\n", k, quickselect(list, 16, k));
     }
     printf("\n");
     cholesky_decomp(a, 3, &L);
-    for(i=0; i<3; i++) {
+    for (i=0; i<3; i++) {
         printf("%g %g %g\n", L[i*3], L[i*3+1], L[i*3+2]);
     }
-    for(i=0; i<10; i++) {
+    for (i=0; i<10; i++) {
         rand_gaussnd(3, L, mean, pt);
         printf("%g %g %g\n", pt[0], pt[1], pt[2]);
     }
-    if(L) free(L);
+    if (L) free(L);
     return EXIT_SUCCESS;
 }
 #endif

@@ -1,12 +1,12 @@
 /** \file
  * NetDAQ saving data to file from shared memory.
  */
-#include <getopt.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <getopt.h>
 
 #include "common.h"
 #include "ipc.h"
@@ -38,8 +38,8 @@ int main(int argc, char **argv)
 
     // parse switches
     memcpy(&pm, &paramDefault, sizeof(pm));
-    while((optC = getopt(argc, argv, "n:")) != -1) {
-        switch(optC) {
+    while ((optC = getopt(argc, argv, "n:")) != -1) {
+        switch (optC) {
         case 'n':
             pm.shmName = optarg;
             break;
@@ -54,20 +54,20 @@ int main(int argc, char **argv)
 
     pageSize = get_system_pagesize();
     shmfd = shm_connect(pm.shmName, &shmp, &shmSize, &ssv);
-    if(shmfd<0 || shmp==NULL) return EXIT_FAILURE;
+    if (shmfd<0 || shmp==NULL) return EXIT_FAILURE;
     close(shmfd); // Can be closed immediately after mmap.
     fprintf(stderr, "System pagesize: %zd bytes.\n", pageSize);
     fprintf(stderr, "Shared memory element size: %zd bytes.\n", ssv->elemSize);
-    fprintf(stderr, "Shared memory SegLen: %zd, NSeg: %zd, total size: %zd bytes.\n",
+    fprintf(stderr, "Shared memory SegLen: %zd, nSeg: %zd, total size: %zd bytes.\n",
             ssv->segLen, ssv->nSeg, shmSize);
     fprintf(stderr, "Shared memory sync variables in the last %d page.\n", SHM_SYNC_NPAGE);
 
-    shm_sync_consumer_init(ssv);
+    shm_consumer_init(ssv);
     SHM_ELEM_TYPE *p;
-    for(int i=0;;i++) {
-        p = shm_acquire_next_segment_sync(shmp, ssv, SHM_SEG_READ);
-        if(p) {
-            printf("0x%x, %td, %td\n", *p, atomic_load(&ssv->iRd), atomic_load(&ssv->iWr));
+    for (int i=0;;i++) {
+        if ((p = shm_acquire_next_segment_sync(shmp, ssv, SHM_SEG_READ))) {
+            printf("0x%08x %2td %2td %d\n", *p,
+                   atomic_load(&ssv->iRd), atomic_load(&ssv->iWr), i);
         }
     }
 

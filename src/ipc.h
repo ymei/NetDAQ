@@ -28,23 +28,23 @@ typedef struct shm_sync
     atomic_size_t   wrSegs;     //!< written segments.
 } shm_sync_t;
 /** Initial values for shm_sync_t.  Called by producer only. */
-#define shm_sync_producer_init(v)               \
+#define shm_producer_init(v)                    \
     do {                                        \
         v->elemSize = sizeof(SHM_ELEM_TYPE);    \
         v->segLen   = SHM_SEG_LEN;              \
         v->nSeg     = SHM_NSEG;                 \
-        atomic_init(&v->iRd, 0);                \
-        atomic_init(&v->iWr, 0);                \
+        atomic_init(&v->iRd, v->nSeg-1);        \
+        atomic_init(&v->iWr, v->nSeg-1);        \
         atomic_flag_test_and_set(&v->ovRun);    \
         atomic_init(&v->wrBytes, 0);            \
         atomic_init(&v->wrSegs,  0);            \
-    } while(0);
+    } while(0)
 /** Initialize for consumer.  Data overrun check starts by this. */
-#define shm_sync_consumer_init(v)               \
+#define shm_consumer_init(v)                    \
     do {                                        \
         atomic_store(&v->iRd, v->iWr);          \
         atomic_flag_clear(&v->ovRun);           \
-    } while(0);
+    } while(0)
 
 /** System page size.
  * @return pagesize in bytes
@@ -66,7 +66,7 @@ int shm_create(const char *name, void **p, size_t *size, shm_sync_t **ssv, int r
  * @return shmfd.  Should close() after use.  -1 on failure.
  */
 int shm_connect(const char *name, void **p, size_t *size, shm_sync_t **ssv);
-/** Acquire next segment for read/write synchronously.
+/** Acquire next segment for read/write, guarantee synchronicity.
  * Segments are supplied circularly.  It is assumed that only one producer writes to shm.
  * Read counter iRd is modified.  It is assumed that only one consumer reads synchronously.
  * @param[in] p pointer to mmap-ed shared memory.
@@ -74,6 +74,13 @@ int shm_connect(const char *name, void **p, size_t *size, shm_sync_t **ssv);
  * @return For read, NULL if iRd == iWr-1.
  */
 SHM_ELEM_TYPE *shm_acquire_next_segment_sync(const void *p, shm_sync_t *ssv, shm_seg_mode_t mode);
+/** Acquire oldest segment for read.  Does not guarantee synchronicity.
+ *  Useful for data monitoring, e.g. online display.
+ * @param[in] p pointer to mmap-ed shared memory.
+ * @param[in] ssv pointer to shm_sync_t.
+ * @return pointer to the start of the oldest segment.
+ */
+SHM_ELEM_TYPE *shm_acquire_oldest_segment(const void *p, const shm_sync_t *ssv);
 /** Update write counts: bytes and segs
  * @param[in] ssv pointer to shm_sync_t.
  */
